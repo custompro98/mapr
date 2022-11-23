@@ -2,26 +2,13 @@ package main
 
 import (
 	"context"
+	"custompro98/mapr/pkg/grid"
 	"fmt"
 	"log"
-
-	"github.com/anaseto/gruid"
-	tcell "github.com/anaseto/gruid-tcell"
 )
 
 func main() {
-	grid := gruid.NewGrid(80, 24)
-
-	driver := tcell.NewDriver(tcell.Config{
-		StyleManager: styler{},
-	})
-
-	model := NewModel(grid)
-
-	app := gruid.NewApp(gruid.AppConfig{
-		Driver: driver,
-		Model:  model,
-	})
+	app := grid.NewGrid(80, 24)
 
 	if err := app.Start(context.Background()); err != nil {
 		log.Fatal(err)

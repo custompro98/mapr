@@ -1,4 +1,4 @@
-package main
+package grid
 
 import (
 	"github.com/anaseto/gruid"
@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	ColorHeader gruid.Color = 1 + iota // skip zero value ColorDefault
-	ColorActive
-	ColorAltBg
-	ColorTitle
-	ColorKey
+	colorHeader gruid.Color = 1 + iota // skip zero value ColorDefault
+	colorActive
+	colorAltBg
+	colorTitle
+	colorKey
 )
 
 type styler struct{}
@@ -18,15 +18,15 @@ type styler struct{}
 func (sty styler) GetStyle(st gruid.Style) tc.Style {
 	ts := tc.StyleDefault
 	switch st.Fg {
-	case ColorHeader:
+	case colorHeader:
 		ts = ts.Foreground(tc.ColorNavy)
-	case ColorKey:
+	case colorKey:
 		ts = ts.Foreground(tc.ColorGreen)
-	case ColorActive, ColorTitle:
+	case colorActive, colorTitle:
 		ts = ts.Foreground(tc.ColorOlive)
 	}
 	switch st.Bg {
-	case ColorAltBg:
+	case colorAltBg:
 		ts = ts.Background(tc.ColorBlack)
 	}
 	return ts
