@@ -5,11 +5,6 @@ import (
 	"github.com/anaseto/gruid/ui"
 )
 
-var empty = gruid.Cell{Rune: ' '}
-var visited = gruid.Cell{Rune: '.'}
-var active = gruid.Cell{Rune: 'O'}
-var wall = gruid.Cell{Rune: 'X'}
-
 var help = []string{
 	"h: move left",
 	"j: move down",
@@ -20,10 +15,52 @@ var help = []string{
 	"q: quit",
 }
 
+var empty = gruid.Cell{Rune: ' '}
+var visited = gruid.Cell{Rune: '.'}
+var active = gruid.Cell{Rune: 'O'}
+var wall = gruid.Cell{Rune: 'X'}
+
+type dirName = int
+
+const (
+	N dirName = iota
+	E
+	S
+	W
+)
+
+type direction struct {
+	name dirName
+	x    int
+	y    int
+}
+
+var north = direction{
+	name: N,
+	x:    0,
+	y:    -1,
+}
+var east = direction{
+	name: E,
+	x:    1,
+	y:    0,
+}
+var south = direction{
+	name: S,
+	x:    0,
+	y:    1,
+}
+var west = direction{
+	name: W,
+	x:    -1,
+	y:    0,
+}
+
 type model struct {
 	display gruid.Grid
 	mapr    *gruid.Grid
 	pos     gruid.Point
+  bearing direction
 	path    []gruid.Point
 	help    *ui.Pager
 }
@@ -69,24 +106,22 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 }
 
 func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
-	var delta = m.pos
-
 	switch msg.Key {
 	case gruid.KeyArrowLeft, "h", "H":
 		m.display = *m.mapr
-		delta = delta.Shift(-1, 0)
+    m.bearing = west
 	case gruid.KeyArrowDown, "j", "J":
 		m.display = *m.mapr
-		delta = delta.Shift(0, 1)
+    m.bearing = south
 	case gruid.KeyArrowUp, "k", "K":
 		m.display = *m.mapr
-		delta = delta.Shift(0, -1)
+    m.bearing = north
 	case gruid.KeyArrowRight, "l", "L":
 		m.display = *m.mapr
-		delta = delta.Shift(1, 0)
+    m.bearing = east
 	case "u", "U":
 		m.display = *m.mapr
-		m.undo(delta)
+		m.undo()
 		return nil
 	case "?":
 		m.display = m.help.Draw()
@@ -97,7 +132,7 @@ func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
 		return nil
 	}
 
-	m.move(delta)
+  m.move(m.pos.Shift(m.bearing.x, m.bearing.y))
 
 	return nil
 }
@@ -123,10 +158,10 @@ func (m *model) passable(p gruid.Point) bool {
 }
 
 func (m *model) erectWalls() {
-	north := m.pos.Shift(0, -1)
-	east := m.pos.Shift(1, 0)
-	south := m.pos.Shift(0, 1)
-	west := m.pos.Shift(-1, 0)
+	north := m.pos.Shift(north.x, north.y)
+	east := m.pos.Shift(east.x, east.y)
+	south := m.pos.Shift(south.x, south.y)
+	west := m.pos.Shift(west.x, west.y)
 
 	if m.mapr.At(north).Rune == empty.Rune {
 		m.mapr.Set(north, wall)
@@ -145,7 +180,7 @@ func (m *model) erectWalls() {
 	}
 }
 
-func (m *model) undo(p gruid.Point) {
+func (m *model) undo() {
 	last := m.path[len(m.path)-1]
 
 	m.mapr.Set(m.pos, empty)
