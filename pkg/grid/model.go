@@ -60,7 +60,7 @@ type model struct {
 	display gruid.Grid
 	mapr    *gruid.Grid
 	pos     gruid.Point
-  bearing direction
+	bearing direction
 	path    []gruid.Point
 	help    *ui.Pager
 }
@@ -106,21 +106,18 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 }
 
 func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
+	m.display = *m.mapr
+
 	switch msg.Key {
 	case gruid.KeyArrowLeft, "h", "H":
-		m.display = *m.mapr
-    m.bearing = west
+		m.bearing = west
 	case gruid.KeyArrowDown, "j", "J":
-		m.display = *m.mapr
-    m.bearing = south
+		m.bearing = south
 	case gruid.KeyArrowUp, "k", "K":
-		m.display = *m.mapr
-    m.bearing = north
+		m.bearing = north
 	case gruid.KeyArrowRight, "l", "L":
-		m.display = *m.mapr
-    m.bearing = east
+		m.bearing = east
 	case "u", "U":
-		m.display = *m.mapr
 		m.undo()
 		return nil
 	case "?":
@@ -132,7 +129,7 @@ func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
 		return nil
 	}
 
-  m.move(m.pos.Shift(m.bearing.x, m.bearing.y))
+	m.move(m.pos.Shift(m.bearing.x, m.bearing.y))
 
 	return nil
 }
