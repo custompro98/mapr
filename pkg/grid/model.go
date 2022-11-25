@@ -228,9 +228,15 @@ func (m *model) findRoomCoordinates() []gruid.Point {
 	sc := sw.Shift(east.x, east.y)
 	se := sc.Shift(east.x, east.y)
 
-	return []gruid.Point{
-		nw, nc, ne, cw, cc, ce, sw, sc, se,
-	}
+  ret := make([]gruid.Point, 0)
+
+  for _, coord := range []gruid.Point{nw, nc, ne, cw, cc, ce, sw, sc, se} {
+    if m.mapr.At(coord).Rune == empty.Rune {
+      ret = append(ret, coord)
+    }
+  }
+
+  return ret
 }
 
 func (m *model) visit(p gruid.Point) {
