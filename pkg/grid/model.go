@@ -193,6 +193,8 @@ func (m *model) undo() {
 }
 
 func (m *model) buildRoom() {
+  m.visit(m.pos.Shift(m.bearing.x, m.bearing.y))
+
 	for _, coord := range m.findRoomCoordinates() {
 		m.visit(coord)
 		m.buildWalls(coord)
