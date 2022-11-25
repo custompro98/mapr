@@ -73,6 +73,7 @@ func newModel(gd gruid.Grid) *model {
 			X: 0,
 			Y: gd.Ug.Height / 2,
 		},
+		bearing: east,
 		help: newPager(PagerConfig{
 			w:     gd.Ug.Width,
 			h:     gd.Ug.Height,
@@ -117,6 +118,9 @@ func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
 		m.bearing = north
 	case gruid.KeyArrowRight, "l", "L":
 		m.bearing = east
+	case "r", "R":
+		m.buildRoom()
+		return nil
 	case "u", "U":
 		m.undo()
 		return nil
@@ -147,18 +151,18 @@ func (m *model) move(to gruid.Point) {
 	m.path = append(m.path, from)
 	m.pos = to
 
-	m.erectWalls()
+	m.buildWalls(m.pos)
 }
 
 func (m *model) passable(p gruid.Point) bool {
 	return m.mapr.Contains(p)
 }
 
-func (m *model) erectWalls() {
-	north := m.pos.Shift(north.x, north.y)
-	east := m.pos.Shift(east.x, east.y)
-	south := m.pos.Shift(south.x, south.y)
-	west := m.pos.Shift(west.x, west.y)
+func (m *model) buildWalls(p gruid.Point) {
+	north := p.Shift(north.x, north.y)
+	east := p.Shift(east.x, east.y)
+	south := p.Shift(south.x, south.y)
+	west := p.Shift(west.x, west.y)
 
 	if m.mapr.At(north).Rune == empty.Rune {
 		m.mapr.Set(north, wall)
@@ -185,5 +189,48 @@ func (m *model) undo() {
 
 	m.pos = last
 
-	m.erectWalls()
+	m.buildWalls(m.pos)
+}
+
+func (m *model) buildRoom() {
+	for _, coord := range m.findRoomCoordinates() {
+		m.visit(coord)
+		m.buildWalls(coord)
+	}
+}
+
+func (m *model) findRoomCoordinates() []gruid.Point {
+	var nw gruid.Point
+
+	switch m.bearing.name {
+  case N:
+    nw = m.pos.Shift(north.x, north.y).Shift(north.x, north.y).Shift(north.x, north.y).Shift(west.x, west.y)
+	case E:
+		nw = m.pos.Shift(north.x, north.y).Shift(east.x, east.y)
+  case S:
+    nw = m.pos.Shift(south.x, south.y).Shift(west.x, west.y)
+  case W:
+    nw = m.pos.Shift(west.x, west.y).Shift(west.x, west.y).Shift(west.x, west.y).Shift(north.x, north.y)
+  default:
+    nw = m.pos
+	}
+
+	nc := nw.Shift(east.x, east.y)
+	ne := nc.Shift(east.x, east.y)
+
+	cw := nw.Shift(south.x, south.y)
+	cc := cw.Shift(east.x, east.y)
+	ce := cc.Shift(east.x, east.y)
+
+	sw := cw.Shift(south.x, south.y)
+	sc := sw.Shift(east.x, east.y)
+	se := sc.Shift(east.x, east.y)
+
+	return []gruid.Point{
+		nw, nc, ne, cw, cc, ce, sw, sc, se,
+	}
+}
+
+func (m *model) visit(p gruid.Point) {
+	m.mapr.Set(p, visited)
 }
