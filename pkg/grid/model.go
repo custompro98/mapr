@@ -61,7 +61,7 @@ type model struct {
 	mapr    *gruid.Grid
 	pos     gruid.Point
 	bearing direction
-	path    []gruid.Point
+	history []model
 	help    *ui.Pager
 }
 
@@ -148,7 +148,7 @@ func (m *model) move(to gruid.Point) {
 	m.mapr.Set(from, visited)
 	m.mapr.Set(to, active)
 
-	m.path = append(m.path, from)
+	m.history = append(m.history, *m)
 	m.pos = to
 
 	m.buildWalls(m.pos)
@@ -159,41 +159,36 @@ func (m *model) passable(p gruid.Point) bool {
 }
 
 func (m *model) buildWalls(p gruid.Point) {
-	north := p.Shift(north.x, north.y)
-	east := p.Shift(east.x, east.y)
-	south := p.Shift(south.x, south.y)
-	west := p.Shift(west.x, west.y)
+	m.buildWall(p.Shift(north.x, north.y))
+	m.buildWall(p.Shift(east.x, east.y))
+	m.buildWall(p.Shift(south.x, south.y))
+	m.buildWall(p.Shift(west.x, west.y))
+}
 
-	if m.mapr.At(north).Rune == empty.Rune {
-		m.mapr.Set(north, wall)
+func (m *model) buildWall(p gruid.Point) {
+	if m.mapr.At(p).Rune != empty.Rune {
+		return
 	}
 
-	if m.mapr.At(east).Rune == empty.Rune {
-		m.mapr.Set(east, wall)
-	}
-
-	if m.mapr.At(south).Rune == empty.Rune {
-		m.mapr.Set(south, wall)
-	}
-
-	if m.mapr.At(west).Rune == empty.Rune {
-		m.mapr.Set(west, wall)
-	}
+	m.mapr.Set(p, wall)
 }
 
 func (m *model) undo() {
-	last := m.path[len(m.path)-1]
+	if len(m.history) == 0 {
+		return
+	}
 
-	m.mapr.Set(m.pos, empty)
-	m.mapr.Set(last, active)
+	last := m.history[len(m.history)-1]
 
-	m.pos = last
-
-	m.buildWalls(m.pos)
+	m.mapr = last.mapr
+	m.display = *m.mapr
+	m.pos = last.pos
+	m.bearing = last.bearing
+	m.history = last.history
 }
 
 func (m *model) buildRoom() {
-  m.visit(m.pos.Shift(m.bearing.x, m.bearing.y))
+	m.visit(m.pos.Shift(m.bearing.x, m.bearing.y))
 
 	for _, coord := range m.findRoomCoordinates() {
 		m.visit(coord)
@@ -205,16 +200,16 @@ func (m *model) findRoomCoordinates() []gruid.Point {
 	var nw gruid.Point
 
 	switch m.bearing.name {
-  case N:
-    nw = m.pos.Shift(north.x, north.y).Shift(north.x, north.y).Shift(north.x, north.y).Shift(west.x, west.y)
+	case N:
+		nw = m.pos.Shift(north.x, north.y).Shift(north.x, north.y).Shift(north.x, north.y).Shift(west.x, west.y)
 	case E:
 		nw = m.pos.Shift(north.x, north.y).Shift(east.x, east.y)
-  case S:
-    nw = m.pos.Shift(south.x, south.y).Shift(west.x, west.y)
-  case W:
-    nw = m.pos.Shift(west.x, west.y).Shift(west.x, west.y).Shift(west.x, west.y).Shift(north.x, north.y)
-  default:
-    nw = m.pos
+	case S:
+		nw = m.pos.Shift(south.x, south.y).Shift(west.x, west.y)
+	case W:
+		nw = m.pos.Shift(west.x, west.y).Shift(west.x, west.y).Shift(west.x, west.y).Shift(north.x, north.y)
+	default:
+		nw = m.pos
 	}
 
 	nc := nw.Shift(east.x, east.y)
@@ -228,15 +223,15 @@ func (m *model) findRoomCoordinates() []gruid.Point {
 	sc := sw.Shift(east.x, east.y)
 	se := sc.Shift(east.x, east.y)
 
-  ret := make([]gruid.Point, 0)
+	ret := make([]gruid.Point, 0)
 
-  for _, coord := range []gruid.Point{nw, nc, ne, cw, cc, ce, sw, sc, se} {
-    if m.mapr.At(coord).Rune == empty.Rune {
-      ret = append(ret, coord)
-    }
-  }
+	for _, coord := range []gruid.Point{nw, nc, ne, cw, cc, ce, sw, sc, se} {
+		if m.mapr.At(coord).Rune == empty.Rune {
+			ret = append(ret, coord)
+		}
+	}
 
-  return ret
+	return ret
 }
 
 func (m *model) visit(p gruid.Point) {
