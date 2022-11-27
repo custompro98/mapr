@@ -1,28 +1,47 @@
 package grid
 
+import "github.com/anaseto/gruid"
+
+type point struct {
+  point gruid.Point
+  cell gruid.Cell
+}
+
+type history struct {
+  points []point
+  pos gruid.Point
+  bearing direction
+}
+
 func (m *model) snapshot() {
-	m.history = append(m.history, *m)
+  h := history {
+    pos: m.pos,
+    bearing: m.bearing,
+    points:make([]point, 0),
+  }
+
+  it := m.mapr.Iterator()
+  for it.Next() {
+    h.points = append(h.points, point{
+      point: it.P(),
+      cell: it.Cell(),
+    })
+  }
+
+  m.history = append(m.history, h)
 }
 
 func (m *model) undo() {
-	if len(m.history) == 0 {
+	if len(m.history) == 1 {
 		return
 	}
 
 	last := m.history[len(m.history)-1]
+  m.history = m.history[:len(m.history)-1]
+  m.pos = last.pos
+  m.bearing = last.bearing
 
-	prev := empty
-
-	if len(m.history) > 1 {
-		prev = m.mapr.At(m.history[len(m.history)-2].pos)
-	}
-
-	last.mapr.Set(m.pos, prev)
-	last.mapr.Set(last.pos, active)
-
-	m.mapr = last.mapr
-	m.display = *m.mapr
-	m.pos = last.pos
-	m.bearing = last.bearing
-	m.history = last.history
+  for _, v := range last.points {
+    m.mapr.Set(v.point, v.cell)
+  }
 }

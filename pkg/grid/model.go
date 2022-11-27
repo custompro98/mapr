@@ -61,7 +61,7 @@ type model struct {
 	mapr    *gruid.Grid
 	pos     gruid.Point
 	bearing direction
-	history []model
+	history []history
 	help    *ui.Pager
 }
 
