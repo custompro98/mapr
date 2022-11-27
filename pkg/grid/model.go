@@ -143,12 +143,13 @@ func (m *model) move(to gruid.Point) {
 		return
 	}
 
+	m.snapshot()
+
 	from := m.pos
 
 	m.mapr.Set(from, visited)
 	m.mapr.Set(to, active)
 
-	m.history = append(m.history, *m)
 	m.pos = to
 
 	m.buildWalls(m.pos)
@@ -173,12 +174,25 @@ func (m *model) buildWall(p gruid.Point) {
 	m.mapr.Set(p, wall)
 }
 
+func (m *model) snapshot() {
+	m.history = append(m.history, *m)
+}
+
 func (m *model) undo() {
 	if len(m.history) == 0 {
 		return
 	}
 
 	last := m.history[len(m.history)-1]
+
+	prev := empty
+
+	if len(m.history) > 1 {
+		prev = m.mapr.At(m.history[len(m.history)-2].pos)
+	}
+
+	last.mapr.Set(m.pos, prev)
+	last.mapr.Set(last.pos, active)
 
 	m.mapr = last.mapr
 	m.display = *m.mapr
@@ -188,6 +202,8 @@ func (m *model) undo() {
 }
 
 func (m *model) buildRoom() {
+	m.snapshot()
+
 	m.visit(m.pos.Shift(m.bearing.x, m.bearing.y))
 
 	for _, coord := range m.findRoomCoordinates() {
